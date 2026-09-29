@@ -1,0 +1,105 @@
+{
+  "info": {
+    "name": "Library API - ReactJS + Spring Boot + MySQL",
+    "_postman_id": "library-api-demo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/health"
+      }
+    },
+    {
+      "name": "Register Member",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"member01\",\n  \"email\": \"member01@example.com\",\n  \"password\": \"StrongPass123\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/register"
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"member01\",\n  \"password\": \"StrongPass123\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.accessToken) pm.collectionVariables.set('token', json.accessToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Add Book",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"ReactJS and Spring Boot Development\",\n  \"isbn\": \"9781234567890\",\n  \"price\": 799.00,\n  \"publishedDate\": \"2026-01-15\",\n  \"description\": \"A practical guide to building secure web applications using ReactJS and Spring Boot.\"\n}"
+        },
+        "url": "{{baseUrl}}/api/books"
+      }
+    },
+    {
+      "name": "Semantic Search",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/search?q=secure%20web%20development&limit=10"
+      }
+    }
+  ]
+}
