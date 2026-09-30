@@ -1,0 +1,53 @@
+{
+  "app_name": "Blood Bank & Donor Locator App (RedPulse)",
+  "context": "Mobile/Web Hybrid App & Emergency Platform for B.Tech Computer Science Project",
+  "archetype": "Organics & High-Precision Emergency Medical UI",
+  "typography": {
+    "heading_font": "Outfit, sans-serif",
+    "body_font": "Plus Jakarta Sans, sans-serif",
+    "mono_font": "JetBrains Mono, monospace"
+  },
+  "colors": {
+    "primary": "#DC2626",
+    "primary_hover": "#B91C1C",
+    "secondary": "#0F172A",
+    "accent": "#F59E0B",
+    "background_light": "#F8FAFC",
+    "background_dark": "#090D16",
+    "card_light": "#FFFFFF",
+    "card_dark": "#131C2E",
+    "text_main": "#0F172A",
+    "text_muted": "#64748B",
+    "border_color": "rgba(226, 232, 240, 0.8)"
+  },
+  "image_urls": [
+    {
+      "category": "hero_blood_donation",
+      "description": "Person on chair donating blood in medical setting",
+      "url": "https://images.unsplash.com/photo-1536856136534-bb679c52a9aa"
+    },
+    {
+      "category": "healthcare_support",
+      "description": "Medical professional assisting donor",
+      "url": "https://images.unsplash.com/photo-1615461066159-fea0960485d5"
+    }
+  ],
+  "features": [
+    "Emergency Blood Request Creation & Live Status Tracking",
+    "Compatible Donor Haversine Search & Radius Filter (5, 10, 25, 50 km)",
+    "Interactive Leaflet Map with Donor & Blood Bank Markers",
+    "Donor Response Flow (Accept/Reject Emergency Requests)",
+    "Admin Verification & Management Dashboard",
+    "Blood Bank Inventory & Stock Levels Directory",
+    "In-App Notification Center & Push Simulator",
+    "Donation History Log & Impact Analytics"
+  ],
+  "instructions_to_main_agent": "Implement a fully functional fullstack application with FastAPI backend and React frontend. Ensure all data-testid attributes are included, use Lucide icons, support dark/light modes, pre-seed realistic mock data, and provide demo login pills for easy testing.",
+  "universal_guidelines": [
+    "Use generous spacing (p-6, p-8, gap-6)",
+    "Never use pure black #000000 or pure white #FFFFFF for backgrounds",
+    "Include data-testid on all interactive elements",
+    "Use sonner for toasts",
+    "Support live Haversine calculations and interactive Leaflet map"
+  ]
+}
