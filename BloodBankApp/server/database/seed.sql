@@ -1,0 +1,7 @@
+-- =====================================================================
+--  Blood Bank & Donor Locator - Demo Seed Data
+--  Passwords are bcrypt-hashed by init.js at runtime, so this file
+--  does NOT contain hashed rows. See /database/init.js for seeding.
+-- =====================================================================
+-- (Intentionally empty. Seed data is inserted programmatically by
+--  init.js so that password hashes stay per-environment / secure.)

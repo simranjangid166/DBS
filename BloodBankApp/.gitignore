@@ -1,0 +1,16 @@
+node_modules/
+**/node_modules/
+
+mysql-data/
+**/mysql-data/
+
+__pycache__/
+**/__pycache__/
+*.pyc
+
+.env
+**/.env
+
+*.log
+
+memory/test_credentials.md

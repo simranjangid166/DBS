@@ -1,0 +1,57 @@
+{
+  "summary": "Full backend + frontend test of RedPulse Blood Bank & Donor Locator (Node/Express/MySQL behind FastAPI proxy + React). Created pytest suite /app/backend/tests/backend_test.py with 27 tests covering health, auth (register/login/demo-login/me), compatibility, Haversine nearby search, request->donor-response flow, availability toggle, blood banks CRUD, donations, admin dashboard/RBAC and notifications: 26/27 passed. Frontend flows verified via Playwright on the public URL: landing, auth modal (donor/recipient role selector), 3 demo logins, donor dashboard (availability toggle + accept request), find-donors (map, radius, compatibility), blood banks, admin dashboard, notification drawer. Two contract-mismatch integration bugs found (admin stats all zeros, blood bank stock all zeros) plus an anonymous-landing 401 and a non-transactional registration bug.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/auth/register", "issue": "Registration is not transactional: users row is INSERTed before role-profile validation. Posting role=donor without blood_group returns 400 but the user row is already committed with NO donor profile -> email is permanently blocked (retry returns 409) and an orphan/profile-less user exists (test_register_donor_missing_blood_group_does_not_orphan_user FAILS). Move all validation before INSERT or wrap in a transaction and rollback.", "priority": "HIGH"},
+      {"endpoint": "GET /api/requests?limit=4 (used by public landing page)", "issue": "Requires auth (requireAuth) so anonymous visitors get 401 and the landing 'Active Blood Requests' feed renders empty. Either expose a public read-only endpoint (e.g. /api/requests/public or allow unauthenticated GET of active requests) or stop calling it when unauthenticated.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "GET /api/admin/dashboard", "issue": "Returns no blood-bank count and no blood-bank inventory totals, which the Admin UI expects (stats.total_blood_banks / stats.inventory_totals). blood_group_breakdown is returned as array of {blood_group,c} while UI expects an object map."},
+      {"endpoint": "GET /api/blood-banks", "issue": "available_blood_groups is returned as a CSV string ('O+,A+,B-,AB+') with no per-group unit counts, while the UI renders numeric stock per group."},
+      {"endpoint": "POST /api/auth/register", "issue": "No max length / sanity validation on name/city; age defaults silently to 25 when invalid (Number(body.age) || 25)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AdminDashboard.jsx (stat cards)", "issue": "ALL six totals cards show 0 (Total Users, Registered Donors, Active Requests, Fulfilled, Blood Banks, Total Donations) and both charts are empty, although the same page's tabs correctly show 'User Management (14) / Blood Requests (5) / Donation Logs (3)'. Root cause: code reads stats.total_users / stats.total_donors / stats.verified_donors / stats.active_requests / stats.fulfilled_requests / stats.total_blood_banks / stats.donor_bg_distribution / stats.inventory_totals, but the API returns data.totals.{users,donors,recipients,verified_donors,active_requests,pending_requests,fulfilled_requests,donations} and data.blood_group_breakdown (array).", "selector": "[data-testid=\"admin-dashboard-title\"] section", "priority": "CRITICAL"},
+      {"component": "BloodBanksPage.jsx", "issue": "'Available Blood Units In Stock' shows 0 for all 8 groups on every one of the 5 banks. Code does `const stocks = bank.available_blood_groups || {}; stocks[bg] || 0` but the API sends a CSV string, so every count is 0.", "selector": "[data-testid^=\"blood-bank-card-\"]", "priority": "HIGH"},
+      {"component": "AdminDashboard stat cards", "issue": "Stat cards / chart containers have no data-testid (only title, reseed and tab buttons do), making them untestable.", "selector": "n/a", "priority": "LOW"},
+      {"component": "Footer.jsx", "issue": "Stale stack labels after the Node rewrite: footer 'Tech Architecture' still lists 'FastAPI + REST Architecture' and 'MySQL / MongoDB Relational Schema'. Should read Node.js + Express and MySQL.", "selector": "footer", "priority": "LOW"},
+      {"component": "DonorDashboard", "issue": "'INCOMING ALERTS' shows 1 while 2 incoming request cards are rendered (counter appears to count pending only, label implies all incoming). Ambiguous/inconsistent.", "selector": "[data-testid=\"donor-incoming-count\"]", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Landing page active requests (anonymous)", "issue": "GET /api/requests?limit=4 returns 401 for anonymous visitors -> 'Active Blood Requests' section is blank for first-time users; it populates only after login.", "affected_selectors": ["Active Blood Requests section"]},
+      {"flow": "Demo login (modal + navbar quick pills)", "issue": "After a successful demo login the app stays on the current page and does NOT navigate to the role dashboard (review request expected navigation). Navbar role link appears, so it works but is a UX gap. Also navbar pills use data-testid quick-demo-donor/recipient/admin, NOT demo-login-*-btn as documented in the request (those exist only inside AuthModal).", "affected_selectors": ["[data-testid=\"demo-login-donor-btn\"]", "[data-testid=\"quick-demo-donor\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "Admin dashboard", "issues": ["Empty chart cards render as bare axis lines with no 'no data' empty state"]},
+      {"screen": "Landing page", "issues": ["'Active Blood Requests' heading with an empty body for anonymous users (no empty/skeleton state or login CTA)"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "AdminDashboard.jsx: map API shape correctly (res.data.data.totals.*, blood_group_breakdown array) - currently every total renders 0.",
+    "Add blood bank count + inventory totals to GET /api/admin/dashboard (or drop those cards/charts).",
+    "Fix blood bank stock rendering: align GET /api/blood-banks payload (per-group unit counts) with BloodBanksPage expectations, or render the CSV group chips instead of 0 counts.",
+    "Make POST /api/auth/register transactional (validate blood_group/lat/lon BEFORE inserting the users row) - currently leaves orphan users and permanently blocks the email.",
+    "Make the landing 'Active Blood Requests' feed work for anonymous visitors (public endpoint) or hide/empty-state it.",
+    "Navigate to the role dashboard after login/demo-login.",
+    "Update Footer tech labels (FastAPI/MongoDB -> Node.js + Express / MySQL).",
+    "Add data-testid to admin stat cards."
+  ],
+  "critical_code_review_comments": [
+    "authController.register: INSERT INTO users happens before donor/recipient validation -> partial writes on 400. Use a single transaction (conn.beginTransaction/rollback) or validate first.",
+    "Frontend/backend response contracts are drifting (admin dashboard, blood banks). Consider a shared shape or typed response mappers in services/api.js.",
+    "matchingService.findNearbyDonors loads ALL matching donors into Node then filters/sorts in JS; fine for demo data but should push Haversine into SQL with a bounding-box prefilter for scale.",
+    "requestController.create inserts donor_requests in a per-donor await loop; batch the INSERT to avoid N round-trips.",
+    "GET /api/requests is auth-only yet is consumed by the public landing page - decide the visibility contract."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "96% (26/27 pytest)", "frontend": "~75% (all pages render & core flows work; admin totals + blood bank stock broken, anon landing feed empty)"},
+  "seed_data_creation": "Test-only artifacts left in MySQL: 2-3 TEST_donor_*@example.test users (register tests), one TEST_orphan_*@example.test user with no donor profile (proves the register rollback bug), one donation_history row notes='TEST_entry' for donor John (total_donations incremented to 9), one 'Jest Hospital' blood request from an earlier Jest suite. Blood request 'TEST_City Hospital' was created and deleted by the test. Donor John's donor_request #6 was set to accepted via the UI.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "/app/memory/test_credentials.md is complete and accurate: admin@redpulse.dev/admin@123, donor.john@redpulse.dev/password123, recipient.msh@redpulse.dev/password123. All verified working.",
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/backend_test.py -v --junitxml=/app/test_reports/pytest/pytest_results.xml. Only test_register_donor_missing_blood_group_does_not_orphan_user fails (real backend bug; it will keep failing until register is made transactional - it uses a fresh random email each run so no state issue). Frontend testids confirmed: navbar quick demo pills are quick-demo-{donor|recipient|admin}; demo-login-*-btn live inside AuthModal (open via 'Get Started'). Demo login does not redirect - navigate manually to /donor/dashboard, /recipient/find-donors, /admin/dashboard. Unverified areas: recipient dashboard 'Send Request' UI submit, donation-history page, donor profile update page, admin user/donor verify tabs from the UI, mobile viewport.",
+  "rca_of_the_issue": "Admin zeros: AdminDashboard.jsx consumes a flat stats object (stats.total_users etc.) while /api/admin/dashboard returns a nested {totals:{users,donors,...}, blood_group_breakdown:[...]} shape, so every `stats?.total_x || 0` falls back to 0 and Object.entries on undefined chart sources yields empty charts. Blood bank zeros: bank.available_blood_groups is a CSV string, indexed as an object map. Register orphan: users INSERT executes before the donor/recipient blood_group validation, and there is no transaction, so the 400 path commits a profile-less user."
+}
